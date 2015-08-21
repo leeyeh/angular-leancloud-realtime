@@ -1,0 +1,19 @@
+{
+  "name": "angular-leancloud-realtime",
+  "version": "0.1.0",
+  "description": "LeanCloud Realtime module for Angular",
+  "main": "dist/index.js",
+  "keywords": [
+    "angular",
+    "leancloud",
+    "realtime"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "angular": "^1.3.0 || ^1.4.0"
+  },
+  "ignore": [
+    "**/.*",
+    "node_modules"
+  ]
+}

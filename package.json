@@ -1,0 +1,23 @@
+{
+  "name": "angular-leancloud-realtime",
+  "version": "0.1.0",
+  "description": "LeanCloud Realtime module for Angular",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "./node_modules/.bin/webpack ./src/index.js ./dist/index.js"
+  },
+  "keywords": [
+    "angualr",
+    "leancloud",
+    "realtime"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "eventemitter2": "^0.4.14"
+  },
+  "devDependencies": {
+    "babel-core": "^5.8.22",
+    "babel-loader": "^5.3.2",
+    "webpack": "^1.11.0"
+  }
+}
