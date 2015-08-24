@@ -8,12 +8,10 @@ class Realtime {
     this._connectPromise = null;
   }
 
-  connect(options, callback) {
+  connect(options, callback = () => {}) {
     this._connectPromise = this.$q((resolve) => {
       this.realtimeInstance = this.realtime(options, (data) => {
-        if (typeof callback === 'function') {
-          callback(data);
-        }
+        callback(data);
         resolve(data);
       });
     });
@@ -32,20 +30,16 @@ class Realtime {
     this._waitForConnect().then(() => this.realtimeInstance.close());
   }
 
-  on(event, callback) {
+  on(event, callback = () => {}) {
     this.realtimeInstance.on(event, (data) => {
-      if (typeof callback === 'function') {
-        callback(data);
-      }
+      callback(data);
       this.$rootScope.$digest();
     });
   }
 
-  once(event, callback) {
+  once(event, callback = () => {}) {
     this.realtimeInstance.once(event, (data) => {
-      if (typeof callback === 'function') {
-        callback(data);
-      }
+      callback(data);
       this.$rootScope.$digest();
     });
   }
@@ -58,16 +52,14 @@ class Realtime {
     this.realtimeInstance.emit(...args);
   }
 
-  room(options, callback) {
+  room(options, callback = () => {}) {
     return this._waitForConnect().then(() => this.$q((resolve, reject) =>
       this.realtimeInstance.room(options, (originalConversation) => {
         if (!originalConversation) {
           reject(new Error('400: Conversation not exists on server.'));
         } else {
-          new Conversation(originalConversation, this.$rootScope, this.$q).then((conversation) => {
-            if (typeof callback === 'function') {
-              callback(conversation);
-            }
+          this._conversationFactory(originalConversation).then((conversation) => {
+            callback(conversation);
             resolve(conversation);
           });
         }
@@ -79,8 +71,40 @@ class Realtime {
     return this.room(...args);
   }
 
-  assign(messageClass) {
-    MessageParser.assign(messageClass);
+  queryConvs(options, callback = () => {}) {
+    var result = this._waitForConnect().then(() => this.$q((resolve) => {
+      this.realtimeInstance.query(options, (convs) => {
+        resolve(convs);
+      });
+    })).then((convs) =>
+      this.$q.all(convs.map((conv) => this.conv(conv.objectId)))
+    );
+    result.then((convs) => {
+      callback(convs);
+    });
+    return result;
+  }
+
+  getMyConvs(callback) {
+    return this.queryConvs({}, callback);
+  }
+
+  // deprecated, will be removed in v1.0
+  query(...args) {
+    return this.queryConvs(...args);
+  }
+
+  ping(clientIds, callback = () => {}) {
+    return this.$q((resolve) => {
+      this.realtimeInstance.ping(clientIds, (onlineClientIds) => {
+        callback(onlineClientIds);
+        resolve(onlineClientIds);
+      });
+    });
+  }
+
+  _conversationFactory(originalConversation) {
+    return new Conversation(originalConversation, this.$rootScope, this.$q);
   }
 }
 
@@ -102,6 +126,7 @@ class Conversation extends EventEmitter {
     // TODO: members 应该是由 SDK 来维护的
     // SDK 中的 Conversation 封装把 members 等初始化的时候就能拿到的 members 信息都丢掉了
     // 这里只能异步再取一次
+    // transient 等属性丢失，需要改 SDK
     return this.$q((resolve) => {
       this._list().then((members) => {
         this.members = members;
@@ -115,6 +140,10 @@ class Conversation extends EventEmitter {
       this.emit('message', MessageParser.parse(message));
       this.$rootScope.$digest();
     });
+    this.originalConversation.receipt((receipt) => {
+      this.emit('receipt', receipt);
+      this.$rootScope.$digest();
+    });
   }
 
   // members 变成属性由 service 来维护，用户不再需要 list 方法
@@ -122,6 +151,14 @@ class Conversation extends EventEmitter {
     return this.$q((resolve) => {
       this.originalConversation.list((members) => {
         resolve(members);
+      });
+    });
+  }
+  count(callback = () => {}) {
+    return this.$q((resolve) => {
+      this.originalConversation.count((amount) => {
+        callback();
+        resolve(amount);
       });
     });
   }
@@ -147,6 +184,30 @@ class Conversation extends EventEmitter {
       });
     });
   }
+  leave(callback = () => {}) {
+    return this.$q((resolve) => {
+      this.originalConversation.leave(() => {
+        callback();
+        resolve();
+      });
+    });
+  }
+  add(clientIds, callback = () => {}) {
+    return this.$q((resolve) => {
+      this.originalConversation.add(clientIds, () => {
+        callback();
+        resolve();
+      });
+    });
+  }
+  remove(clientIds, callback = () => {}) {
+    return this.$q((resolve) => {
+      this.originalConversation.remove(clientIds, () => {
+        callback();
+        resolve();
+      });
+    });
+  }
   send(message, callback = () => {}) {
     if (typeof message === 'string') {
       return this.send(new Message(message));
@@ -159,6 +220,14 @@ class Conversation extends EventEmitter {
       this.originalConversation.send(message.toString(), options, () => {
         callback(message);
         resolve(message);
+      });
+    });
+  }
+  update(data, callback = () => {}) {
+    return this.$q((resolve) => {
+      this.originalConversation.update(data, () => {
+        callback();
+        resolve();
       });
     });
   }
@@ -253,7 +322,7 @@ class MessageParser {
       } catch (e) {}
     }
   }
-  static assign(messageClass) {
+  static register(messageClass) {
     if (messageClass && messageClass.parse && messageClass.toString) {
       this._messageClasses.unshift(messageClass);
     } else {
@@ -262,7 +331,7 @@ class MessageParser {
   }
 }
 MessageParser._messageClasses = [];
-[Message, TypedMessage, TextMessage].forEach((Klass) => MessageParser.assign(Klass));
+[Message, TypedMessage, TextMessage].forEach((Klass) => MessageParser.register(Klass));
 
 angular.module('leancloud-realtime', [])
   .provider('LCRealtimeFactory', function() {
@@ -282,7 +351,7 @@ angular.module('leancloud-realtime', [])
     this.$get.$injects = ['$rootScope', '$q'];
   })
   .provider('LCRealtimeMessageParser', function() {
-    this.assign = MessageParser.assign.bind(MessageParser);
+    this.register = MessageParser.register.bind(MessageParser);
     this.$get = function() {};
   })
   .value('LCMessage', Message)
