@@ -4,7 +4,7 @@
   "description": "LeanCloud Realtime module for Angular",
   "main": "src/index.js",
   "scripts": {
-    "build": "./node_modules/.bin/webpack ./src/index.js ./dist/index.js"
+    "build": "webpack ./src/index.js ./dist/index.js"
   },
   "keywords": [
     "angualr",

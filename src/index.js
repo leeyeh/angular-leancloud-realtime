@@ -17,6 +17,7 @@ class Realtime {
     });
     return this._connectPromise;
   }
+
   _waitForConnect() {
     if (!this._connectPromise) {
       throw new Error('LeancloudRealtimeService.connect() never called.');
@@ -209,8 +210,8 @@ class Conversation extends EventEmitter {
     });
   }
   send(message, callback = () => {}) {
-    if (typeof message === 'string') {
-      return this.send(new Message(message));
+    if (!(message instanceof Message)) {
+      throw new TypeError(message + ' is not a Message');
     }
     var options = {
       r: message.needReceipt,
@@ -256,6 +257,9 @@ class Message {
   toString(data) {
     return JSON.stringify(data || this.content);
   }
+  static validate() {
+    return true;
+  }
   static parse(content, metaData) {
     if (typeof content === 'string') {
       return new Message(content, metaData);
@@ -270,19 +274,22 @@ class TypedMessage extends Message {
     this.content.type = 0;
   }
   toString(data) {
-    return super.toString(angular.extend({}, data, {
+    return super.toString(angular.extend({
       _lctext: this.content.text,
       _lcattrs: this.content.attr,
       _lctype: this.content.type
-    }));
+    }, data));
+  }
+  static validate(content, metaData) {
+    if (super.validate(content, metaData)) {
+      return typeof content._lctype === 'number';
+    }
   }
   static parse(content, metaData) {
-    if (typeof content._lctype === 0) {
-      return new TypedMessage({
-        text: content._lctext,
-        attr: content._attrs
-      }, metaData);
-    }
+    return new TypedMessage({
+      text: content._lctext,
+      attr: content._attrs
+    }, metaData);
   }
 }
 class TextMessage extends TypedMessage {
@@ -298,14 +305,19 @@ class TextMessage extends TypedMessage {
   toString(data) {
     return super.toString(data);
   }
-  static parse(content, metaData) {
-    if (typeof content._lctype === -1) {
-      return new TextMessage(content, metaData);
+  static validate(content, metaData) {
+    if (super.validate(content, metaData)) {
+      return content._lctype === -1;
     }
+    // 兼容现在的 sdk
+    return content.msg.type === 'text';
+  }
+  static parse(content, metaData) {
     // 兼容现在的 sdk
     if (content.msg.type === 'text') {
       return new TextMessage(content.msg, content);
     }
+    return new TextMessage(content, metaData);
   }
 }
 
@@ -315,9 +327,11 @@ class MessageParser {
     // 暂时先用 sdk 包装后的 message
     for (var Klass of this._messageClasses) {
       try {
-        let result = Klass.parse(message);
-        if (result !== undefined) {
-          return result;
+        if (Klass.validate(message)) {
+          let result = Klass.parse(message);
+          if (result !== undefined) {
+            return result;
+          }
         }
       } catch (e) {}
     }

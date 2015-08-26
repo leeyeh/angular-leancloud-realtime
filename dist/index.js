@@ -385,8 +385,8 @@
 
 	      var callback = arguments.length <= 1 || arguments[1] === undefined ? function () {} : arguments[1];
 
-	      if (typeof message === 'string') {
-	        return this.send(new Message(message));
+	      if (!(message instanceof Message)) {
+	        throw new TypeError(message + ' is not a Message');
 	      }
 	      var options = {
 	        r: message.needReceipt,
@@ -451,6 +451,11 @@
 	      return JSON.stringify(data || this.content);
 	    }
 	  }], [{
+	    key: 'validate',
+	    value: function validate() {
+	      return true;
+	    }
+	  }, {
 	    key: 'parse',
 	    value: function parse(content, metaData) {
 	      if (typeof content === 'string') {
@@ -476,21 +481,26 @@
 	  _createClass(TypedMessage, [{
 	    key: 'toString',
 	    value: function toString(data) {
-	      return _get(Object.getPrototypeOf(TypedMessage.prototype), 'toString', this).call(this, angular.extend({}, data, {
+	      return _get(Object.getPrototypeOf(TypedMessage.prototype), 'toString', this).call(this, angular.extend({
 	        _lctext: this.content.text,
 	        _lcattrs: this.content.attr,
 	        _lctype: this.content.type
-	      }));
+	      }, data));
 	    }
 	  }], [{
+	    key: 'validate',
+	    value: function validate(content, metaData) {
+	      if (_get(Object.getPrototypeOf(TypedMessage), 'validate', this).call(this, content, metaData)) {
+	        return typeof content._lctype === 'number';
+	      }
+	    }
+	  }, {
 	    key: 'parse',
 	    value: function parse(content, metaData) {
-	      if (typeof content._lctype === 0) {
-	        return new TypedMessage({
-	          text: content._lctext,
-	          attr: content._attrs
-	        }, metaData);
-	      }
+	      return new TypedMessage({
+	        text: content._lctext,
+	        attr: content._attrs
+	      }, metaData);
 	    }
 	  }]);
 
@@ -518,15 +528,22 @@
 	      return _get(Object.getPrototypeOf(TextMessage.prototype), 'toString', this).call(this, data);
 	    }
 	  }], [{
+	    key: 'validate',
+	    value: function validate(content, metaData) {
+	      if (_get(Object.getPrototypeOf(TextMessage), 'validate', this).call(this, content, metaData)) {
+	        return content._lctype === -1;
+	      }
+	      // 兼容现在的 sdk
+	      return content.msg.type === 'text';
+	    }
+	  }, {
 	    key: 'parse',
 	    value: function parse(content, metaData) {
-	      if (typeof content._lctype === -1) {
-	        return new TextMessage(content, metaData);
-	      }
 	      // 兼容现在的 sdk
 	      if (content.msg.type === 'text') {
 	        return new TextMessage(content.msg, content);
 	      }
+	      return new TextMessage(content, metaData);
 	    }
 	  }]);
 
@@ -552,9 +569,11 @@
 	          var Klass = _step.value;
 
 	          try {
-	            var result = Klass.parse(message);
-	            if (result !== undefined) {
-	              return result;
+	            if (Klass.validate(message)) {
+	              var result = Klass.parse(message);
+	              if (result !== undefined) {
+	                return result;
+	              }
 	            }
 	          } catch (e) {}
 	        }
