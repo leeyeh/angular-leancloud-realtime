@@ -46,42 +46,63 @@
 
 	'use strict';
 
-	var _get = function get(_x15, _x16, _x17) { var _again = true; _function: while (_again) { var object = _x15, property = _x16, receiver = _x17; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x15 = parent; _x16 = property; _x17 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
-
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	var _get = function get(_x13, _x14, _x15) { var _again = true; _function: while (_again) { var object = _x13, property = _x14, receiver = _x15; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x13 = parent; _x14 = property; _x15 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 	var _eventemitter2 = __webpack_require__(1);
 
 	var _eventemitter22 = _interopRequireDefault(_eventemitter2);
 
-	var Realtime = (function () {
+	var Realtime = (function (_EventEmitter) {
+	  _inherits(Realtime, _EventEmitter);
+
 	  function Realtime($rootScope, realtime, $q) {
 	    _classCallCheck(this, Realtime);
 
+	    _get(Object.getPrototypeOf(Realtime.prototype), 'constructor', this).call(this);
 	    this.$rootScope = $rootScope;
 	    this.realtime = realtime;
 	    this.$q = $q;
+	    this.realtimeInstance = undefined;
 	    this._connectPromise = null;
 	  }
 
 	  _createClass(Realtime, [{
+	    key: '_initEventsProxy',
+	    value: function _initEventsProxy() {
+	      var _this = this;
+
+	      this.realtimeInstance.on('message', function (message) {
+	        _this.emit('message', MessageParser.parse(message));
+	        _this.$rootScope.$digest();
+	      });
+	      ['open', 'close', 'create', 'join', 'left', 'reuse', 'receipt'].forEach(function (event) {
+	        return _this.realtimeInstance.on(event, function (data) {
+	          _this.emit(event, data);
+	          _this.$rootScope.$digest();
+	        });
+	      });
+	    }
+	  }, {
 	    key: 'connect',
 	    value: function connect(options) {
-	      var _this = this;
+	      var _this2 = this;
 
 	      var callback = arguments.length <= 1 || arguments[1] === undefined ? function () {} : arguments[1];
 
 	      this._connectPromise = this.$q(function (resolve) {
-	        _this.realtimeInstance = _this.realtime(options, function (data) {
+	        _this2.realtimeInstance = _this2.realtime(options, function (data) {
 	          callback(data);
 	          resolve(data);
 	        });
+	        _this2._initEventsProxy();
 	      });
 	      return this._connectPromise;
 	    }
@@ -97,65 +118,27 @@
 	  }, {
 	    key: 'close',
 	    value: function close() {
-	      var _this2 = this;
+	      var _this3 = this;
 
 	      // TODO: sdk close 不会移除心跳
 	      this._waitForConnect().then(function () {
-	        return _this2.realtimeInstance.close();
+	        return _this3.realtimeInstance.close();
 	      });
-	    }
-	  }, {
-	    key: 'on',
-	    value: function on(event) {
-	      var _this3 = this;
-
-	      var callback = arguments.length <= 1 || arguments[1] === undefined ? function () {} : arguments[1];
-
-	      this.realtimeInstance.on(event, function (data) {
-	        callback(data);
-	        _this3.$rootScope.$digest();
-	      });
-	    }
-	  }, {
-	    key: 'once',
-	    value: function once(event) {
-	      var _this4 = this;
-
-	      var callback = arguments.length <= 1 || arguments[1] === undefined ? function () {} : arguments[1];
-
-	      this.realtimeInstance.once(event, function (data) {
-	        callback(data);
-	        _this4.$rootScope.$digest();
-	      });
-	    }
-	  }, {
-	    key: 'off',
-	    value: function off() {
-	      var _realtimeInstance;
-
-	      (_realtimeInstance = this.realtimeInstance).off.apply(_realtimeInstance, arguments);
-	    }
-	  }, {
-	    key: 'emit',
-	    value: function emit() {
-	      var _realtimeInstance2;
-
-	      (_realtimeInstance2 = this.realtimeInstance).emit.apply(_realtimeInstance2, arguments);
 	    }
 	  }, {
 	    key: 'room',
 	    value: function room(options) {
-	      var _this5 = this;
+	      var _this4 = this;
 
 	      var callback = arguments.length <= 1 || arguments[1] === undefined ? function () {} : arguments[1];
 
 	      return this._waitForConnect().then(function () {
-	        return _this5.$q(function (resolve, reject) {
-	          return _this5.realtimeInstance.room(options, function (originalConversation) {
+	        return _this4.$q(function (resolve, reject) {
+	          return _this4.realtimeInstance.room(options, function (originalConversation) {
 	            if (!originalConversation) {
 	              reject(new Error('400: Conversation not exists on server.'));
 	            } else {
-	              _this5._conversationFactory(originalConversation).then(function (conversation) {
+	              _this4._conversationFactory(originalConversation).then(function (conversation) {
 	                callback(conversation);
 	                resolve(conversation);
 	              });
@@ -172,19 +155,19 @@
 	  }, {
 	    key: 'queryConvs',
 	    value: function queryConvs(options) {
-	      var _this6 = this;
+	      var _this5 = this;
 
 	      var callback = arguments.length <= 1 || arguments[1] === undefined ? function () {} : arguments[1];
 
 	      var result = this._waitForConnect().then(function () {
-	        return _this6.$q(function (resolve) {
-	          _this6.realtimeInstance.query(options, function (convs) {
+	        return _this5.$q(function (resolve) {
+	          _this5.realtimeInstance.query(options, function (convs) {
 	            resolve(convs);
 	          });
 	        });
 	      }).then(function (convs) {
-	        return _this6.$q.all(convs.map(function (conv) {
-	          return _this6.conv(conv.objectId);
+	        return _this5.$q.all(convs.map(function (conv) {
+	          return _this5.conv(conv.objectId);
 	        }));
 	      });
 	      result.then(function (convs) {
@@ -207,12 +190,12 @@
 	  }, {
 	    key: 'ping',
 	    value: function ping(clientIds) {
-	      var _this7 = this;
+	      var _this6 = this;
 
 	      var callback = arguments.length <= 1 || arguments[1] === undefined ? function () {} : arguments[1];
 
 	      return this.$q(function (resolve) {
-	        _this7.realtimeInstance.ping(clientIds, function (onlineClientIds) {
+	        _this6.realtimeInstance.ping(clientIds, function (onlineClientIds) {
 	          callback(onlineClientIds);
 	          resolve(onlineClientIds);
 	        });
@@ -226,13 +209,13 @@
 	  }]);
 
 	  return Realtime;
-	})();
+	})(_eventemitter22['default']);
 
-	var Conversation = (function (_EventEmitter) {
-	  _inherits(Conversation, _EventEmitter);
+	var Conversation = (function (_EventEmitter2) {
+	  _inherits(Conversation, _EventEmitter2);
 
 	  function Conversation(originalConversation, $rootScope, $q) {
-	    var _this8 = this;
+	    var _this7 = this;
 
 	    _classCallCheck(this, Conversation);
 
@@ -241,36 +224,36 @@
 	    this.$rootScope = $rootScope;
 	    this.$q = $q;
 
-	    ['id', 'name', 'attr'].forEach(function (prop) {
-	      return _this8[prop] = originalConversation[prop];
+	    // lm、transient、muted 字段被 sdk 丢掉了
+	    ['id', 'name', 'attr', 'members', 'lastMessageTime', 'muted'].forEach(function (prop) {
+	      return _this7[prop] = originalConversation[prop];
 	    });
 
-	    this._bindEvents();
+	    this._initEventsProxy();
 
 	    // TODO: members 应该是由 SDK 来维护的
 	    // SDK 中的 Conversation 封装把 members 等初始化的时候就能拿到的 members 信息都丢掉了
 	    // 这里只能异步再取一次
-	    // transient 等属性丢失，需要改 SDK
 	    return this.$q(function (resolve) {
-	      _this8._list().then(function (members) {
-	        _this8.members = members;
-	        resolve(_this8);
+	      _this7._list().then(function (members) {
+	        _this7.members = members;
+	        resolve(_this7);
 	      });
 	    });
 	  }
 
 	  _createClass(Conversation, [{
-	    key: '_bindEvents',
-	    value: function _bindEvents() {
-	      var _this9 = this;
+	    key: '_initEventsProxy',
+	    value: function _initEventsProxy() {
+	      var _this8 = this;
 
 	      this.originalConversation.receive(function (message) {
-	        _this9.emit('message', MessageParser.parse(message));
-	        _this9.$rootScope.$digest();
+	        _this8.emit('message', MessageParser.parse(message));
+	        _this8.$rootScope.$digest();
 	      });
 	      this.originalConversation.receipt(function (receipt) {
-	        _this9.emit('receipt', receipt);
-	        _this9.$rootScope.$digest();
+	        _this8.emit('receipt', receipt);
+	        _this8.$rootScope.$digest();
 	      });
 	    }
 
@@ -278,10 +261,10 @@
 	  }, {
 	    key: '_list',
 	    value: function _list() {
-	      var _this10 = this;
+	      var _this9 = this;
 
 	      return this.$q(function (resolve) {
-	        _this10.originalConversation.list(function (members) {
+	        _this9.originalConversation.list(function (members) {
 	          resolve(members);
 	        });
 	      });
@@ -289,12 +272,12 @@
 	  }, {
 	    key: 'count',
 	    value: function count() {
-	      var _this11 = this;
+	      var _this10 = this;
 
 	      var callback = arguments.length <= 0 || arguments[0] === undefined ? function () {} : arguments[0];
 
 	      return this.$q(function (resolve) {
-	        _this11.originalConversation.count(function (amount) {
+	        _this10.originalConversation.count(function (amount) {
 	          callback();
 	          resolve(amount);
 	        });
@@ -303,7 +286,7 @@
 	  }, {
 	    key: 'log',
 	    value: function log(options, callback) {
-	      var _this12 = this;
+	      var _this11 = this;
 
 	      if (callback === undefined) {
 	        var _ref = [options, {}];
@@ -311,7 +294,7 @@
 	        options = _ref[1];
 	      }
 	      return this.$q(function (resolve) {
-	        _this12.originalConversation.log(options, function (messages) {
+	        _this11.originalConversation.log(options, function (messages) {
 	          messages = messages.map(function (message) {
 	            return MessageParser.parse(message);
 	          });
@@ -325,12 +308,12 @@
 	  }, {
 	    key: 'join',
 	    value: function join() {
-	      var _this13 = this;
+	      var _this12 = this;
 
 	      var callback = arguments.length <= 0 || arguments[0] === undefined ? function () {} : arguments[0];
 
 	      return this.$q(function (resolve) {
-	        _this13.originalConversation.join(function () {
+	        _this12.originalConversation.join(function () {
 	          callback();
 	          resolve();
 	        });
@@ -339,12 +322,12 @@
 	  }, {
 	    key: 'leave',
 	    value: function leave() {
-	      var _this14 = this;
+	      var _this13 = this;
 
 	      var callback = arguments.length <= 0 || arguments[0] === undefined ? function () {} : arguments[0];
 
 	      return this.$q(function (resolve) {
-	        _this14.originalConversation.leave(function () {
+	        _this13.originalConversation.leave(function () {
 	          callback();
 	          resolve();
 	        });
@@ -353,12 +336,12 @@
 	  }, {
 	    key: 'add',
 	    value: function add(clientIds) {
-	      var _this15 = this;
+	      var _this14 = this;
 
 	      var callback = arguments.length <= 1 || arguments[1] === undefined ? function () {} : arguments[1];
 
 	      return this.$q(function (resolve) {
-	        _this15.originalConversation.add(clientIds, function () {
+	        _this14.originalConversation.add(clientIds, function () {
 	          callback();
 	          resolve();
 	        });
@@ -367,12 +350,12 @@
 	  }, {
 	    key: 'remove',
 	    value: function remove(clientIds) {
-	      var _this16 = this;
+	      var _this15 = this;
 
 	      var callback = arguments.length <= 1 || arguments[1] === undefined ? function () {} : arguments[1];
 
 	      return this.$q(function (resolve) {
-	        _this16.originalConversation.remove(clientIds, function () {
+	        _this15.originalConversation.remove(clientIds, function () {
 	          callback();
 	          resolve();
 	        });
@@ -381,7 +364,7 @@
 	  }, {
 	    key: 'send',
 	    value: function send(message) {
-	      var _this17 = this;
+	      var _this16 = this;
 
 	      var callback = arguments.length <= 1 || arguments[1] === undefined ? function () {} : arguments[1];
 
@@ -393,7 +376,7 @@
 	        transient: message.transient
 	      };
 	      return this.$q(function (resolve) {
-	        _this17.originalConversation.send(message.toString(), options, function () {
+	        _this16.originalConversation.send(message.toString(), options, function () {
 	          callback(message);
 	          resolve(message);
 	        });
@@ -402,12 +385,12 @@
 	  }, {
 	    key: 'update',
 	    value: function update(data) {
-	      var _this18 = this;
+	      var _this17 = this;
 
 	      var callback = arguments.length <= 1 || arguments[1] === undefined ? function () {} : arguments[1];
 
 	      return this.$q(function (resolve) {
-	        _this18.originalConversation.update(data, function () {
+	        _this17.originalConversation.update(data, function () {
 	          callback();
 	          resolve();
 	        });
@@ -437,6 +420,8 @@
 	        mataData.from = mataData.fromPeerId;
 	      }
 	      angular.extend(this, {
+	        id: undefined,
+	        cid: null,
 	        timestamp: Date.now(),
 	        from: undefined,
 	        needReceipt: false,

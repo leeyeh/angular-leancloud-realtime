@@ -84,11 +84,8 @@ angular.module('myApp', ['angular-leancloud-realtime'])
 #### close()
 主动关闭连接。
 
-#### on(eventName, callback)
-#### once(eventName, callback)
-#### emit(eventName, data)
-#### off(eventName, callback)
-参见 [对应 SDK 文档](https://leancloud.cn/docs/js_realtime.html#RealtimeObject_on) 及 [事件列表](https://leancloud.cn/docs/js_realtime.html#全局事件)。
+#### on()、once()、off() ...
+see [eventemitter2](https://www.npmjs.com/package/eventemitter2) 及 [事件列表](https://leancloud.cn/docs/js_realtime.html#全局事件)。
 
 #### conv(options[, callback]) : Promise
 查询一个指定 ID 的对话 / 新建一个对话，options 参见 [https://leancloud.cn/docs/js_realtime.html#RealtimeObject_conv](https://leancloud.cn/docs/js_realtime.html#RealtimeObject_conv)。
@@ -132,8 +129,8 @@ Alias of `queryConvs()`，deprecated，不推荐使用。
 #### send(message : Message[, callback]) : Promise
 发送消息，Promise resolved with a `Message`。
 
-#### on、once、off ...
-see [https://www.npmjs.com/package/eventemitter2](https://www.npmjs.com/package/eventemitter2)
+#### on()、once()、off() ...
+see [eventemitter2](https://www.npmjs.com/package/eventemitter2)
 
 派发的事件如下：
 ##### message
@@ -148,6 +145,10 @@ see [https://www.npmjs.com/package/eventemitter2](https://www.npmjs.com/package/
 ### LCMessage
 内置的消息基类，上文中提到的 `Message` 类指的即是该类或该类的子类。
 `toString()`、`validate()`、`parse()`方法参见上文 [自定义类型消息](#自定义类型消息) 章节，不再列出，下同。
+#### id
+消息 ID
+#### cid
+消息所在的对话 ID
 #### timestamp
 消息发送时间安，毫秒。
 #### from
@@ -157,15 +158,18 @@ see [https://www.npmjs.com/package/eventemitter2](https://www.npmjs.com/package/
 #### transient
 是否是暂态消息
 
-### LCTextMessage
+### LCTypedMessage
 除了继承自 `LCMessage` 的属性，还有：
-#### content
-```js
-{
-  "text": "消息文本内容",
-  "type": -1
-}
-```
+#### content.attr
+消息附带的额外的信息
+
+### LCTextMessage
+除了继承自 `LCTypedMessage` 的属性，还有：
+#### content.text
+文本内容
+#### content.type
+-1
+
 
 ## Build
 ```bash

@@ -1,11 +1,34 @@
 import EventEmitter from 'eventemitter2';
 
-class Realtime {
+class Realtime extends EventEmitter {
   constructor($rootScope, realtime, $q) {
+    super();
     this.$rootScope = $rootScope;
     this.realtime = realtime;
     this.$q = $q;
+    this.realtimeInstance = undefined;
     this._connectPromise = null;
+  }
+
+  _initEventsProxy() {
+    this.realtimeInstance.on('message', (message) => {
+      this.emit('message', MessageParser.parse(message));
+      this.$rootScope.$digest();
+    });
+    [
+      'open',
+      'close',
+      'create',
+      'join',
+      'left',
+      'reuse',
+      'receipt'
+    ].forEach((event) =>
+      this.realtimeInstance.on(event, (data) => {
+        this.emit(event, data);
+        this.$rootScope.$digest();
+      })
+    );
   }
 
   connect(options, callback = () => {}) {
@@ -14,6 +37,7 @@ class Realtime {
         callback(data);
         resolve(data);
       });
+      this._initEventsProxy();
     });
     return this._connectPromise;
   }
@@ -29,28 +53,6 @@ class Realtime {
   close() {
     // TODO: sdk close 不会移除心跳
     this._waitForConnect().then(() => this.realtimeInstance.close());
-  }
-
-  on(event, callback = () => {}) {
-    this.realtimeInstance.on(event, (data) => {
-      callback(data);
-      this.$rootScope.$digest();
-    });
-  }
-
-  once(event, callback = () => {}) {
-    this.realtimeInstance.once(event, (data) => {
-      callback(data);
-      this.$rootScope.$digest();
-    });
-  }
-
-  off(...args) {
-    this.realtimeInstance.off(...args);
-  }
-
-  emit(...args) {
-    this.realtimeInstance.emit(...args);
   }
 
   room(options, callback = () => {}) {
@@ -116,18 +118,21 @@ class Conversation extends EventEmitter {
     this.$rootScope = $rootScope;
     this.$q = $q;
 
+    // lm、transient、muted 字段被 sdk 丢掉了
     [
       'id',
       'name',
-      'attr'
+      'attr',
+      'members',
+      'lastMessageTime',
+      'muted'
     ].forEach((prop) => this[prop] = originalConversation[prop]);
 
-    this._bindEvents();
+    this._initEventsProxy();
 
     // TODO: members 应该是由 SDK 来维护的
     // SDK 中的 Conversation 封装把 members 等初始化的时候就能拿到的 members 信息都丢掉了
     // 这里只能异步再取一次
-    // transient 等属性丢失，需要改 SDK
     return this.$q((resolve) => {
       this._list().then((members) => {
         this.members = members;
@@ -136,7 +141,7 @@ class Conversation extends EventEmitter {
     });
   }
 
-  _bindEvents() {
+  _initEventsProxy() {
     this.originalConversation.receive((message) => {
       this.emit('message', MessageParser.parse(message));
       this.$rootScope.$digest();
@@ -247,6 +252,8 @@ class Message {
         mataData.from = mataData.fromPeerId;
       }
       angular.extend(this, {
+        id: undefined,
+        cid: null,
         timestamp: Date.now(),
         from: undefined,
         needReceipt: false,
