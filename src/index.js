@@ -119,14 +119,20 @@ class Conversation extends EventEmitter {
     this.$q = $q;
 
     // lm、transient、muted 字段被 sdk 丢掉了
-    [
-      'id',
-      'name',
-      'attr',
-      'members',
-      'lastMessageTime',
-      'muted'
-    ].forEach((prop) => this[prop] = originalConversation[prop]);
+    angular.forEach({
+      'id': undefined,
+      'name': undefined,
+      'attr': undefined,
+      'members': [],
+      'lastMessageTime': 0,
+      'muted': false
+    }, (defaultValue, prop) => {
+      if (originalConversation[prop] === undefined) {
+        this[prop] = defaultValue;
+      } else {
+        this[prop] = originalConversation[prop];
+      }
+    });
 
     this._initEventsProxy();
 

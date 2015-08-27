@@ -225,8 +225,19 @@
 	    this.$q = $q;
 
 	    // lm、transient、muted 字段被 sdk 丢掉了
-	    ['id', 'name', 'attr', 'members', 'lastMessageTime', 'muted'].forEach(function (prop) {
-	      return _this7[prop] = originalConversation[prop];
+	    angular.forEach({
+	      'id': undefined,
+	      'name': undefined,
+	      'attr': undefined,
+	      'members': [],
+	      'lastMessageTime': 0,
+	      'muted': false
+	    }, function (defaultValue, prop) {
+	      if (originalConversation[prop] === undefined) {
+	        _this7[prop] = defaultValue;
+	      } else {
+	        _this7[prop] = originalConversation[prop];
+	      }
 	    });
 
 	    this._initEventsProxy();
