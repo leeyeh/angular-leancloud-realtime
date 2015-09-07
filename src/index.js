@@ -257,6 +257,9 @@ class Message {
       if (mataData.fromPeerId) {
         mataData.from = mataData.fromPeerId;
       }
+      if (mataData.msgId) {
+        mataData.id = mataData.msgId;
+      }
       angular.extend(this, {
         id: undefined,
         cid: null,
