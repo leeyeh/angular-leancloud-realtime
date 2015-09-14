@@ -83,7 +83,7 @@
 	        _this.emit('message', MessageParser.parse(message));
 	        _this.$rootScope.$digest();
 	      });
-	      ['open', 'close', 'create', 'join', 'left', 'reuse', 'receipt'].forEach(function (event) {
+	      ['open', 'close', 'create', 'join', 'left', 'invited', 'kicked', 'membersjoined', 'membersleft', 'reuse', 'receipt'].forEach(function (event) {
 	        return _this.realtimeInstance.on(event, function (data) {
 	          _this.emit(event, data);
 	          _this.$rootScope.$digest();

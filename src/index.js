@@ -21,6 +21,10 @@ class Realtime extends EventEmitter {
       'create',
       'join',
       'left',
+      'invited',
+      'kicked',
+      'membersjoined',
+      'membersleft',
       'reuse',
       'receipt'
     ].forEach((event) =>
