@@ -1,6 +1,6 @@
 angular-leancloud-realtime
 ====
-Angular module for LeanCloud Realtime SDK.
+Angular module for LeanCloud Realtime SDK. :horse_racing: [Live Demo](https://github.com/leancloud/leanmessage-demo/tree/master/Web) .
 
 本模块在 leancloud-realtime SDK 的基础上添加了以下特性：
 
@@ -15,7 +15,7 @@ Angular module for LeanCloud Realtime SDK.
 ## 使用
 ```javascript
 // 添加为 myApp 的依赖
-angular.module('myApp', ['angular-leancloud-realtime'])
+angular.module('myApp', ['leancloud-realtime'])
 // 调用模块提供的 LCRealtimeFactory 方法生成一个 Realtime 实例，将该实例注册为 realtimeInstance
 .factory('realtimeInstance', function (LCRealtimeFactory) {
   return LCRealtimeFactory();
