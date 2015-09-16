@@ -347,8 +347,9 @@ class MessageParser {
     // 暂时先用 sdk 包装后的 message
     for (var Klass of this._messageClasses) {
       try {
-        if (Klass.validate(message)) {
-          let result = Klass.parse(message);
+        var messageCopy = angular.merge({}, message);
+        if (Klass.validate(messageCopy)) {
+          let result = Klass.parse(messageCopy);
           if (result !== undefined) {
             return result;
           }
