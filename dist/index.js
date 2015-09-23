@@ -568,7 +568,7 @@
 	          var Klass = _step.value;
 
 	          try {
-	            var messageCopy = angular.merge({}, message);
+	            var messageCopy = angular.copy(message);
 	            if (Klass.validate(messageCopy)) {
 	              var result = Klass.parse(messageCopy);
 	              if (result !== undefined) {
