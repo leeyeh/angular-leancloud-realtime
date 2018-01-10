@@ -1,5 +1,9 @@
 angular-leancloud-realtime
 ====
+**已弃用，请直接使用 [leancloud-realtime](https://github.com/leancloud/js-realtime-sdk) v3 或更新版本。**
+
+<hr>
+
 Angular module for LeanCloud Realtime SDK. :horse_racing: [Live Demo](https://github.com/leancloud/leanmessage-demo/tree/master/Web) .
 
 本模块在 leancloud-realtime SDK 的基础上添加了以下特性：
