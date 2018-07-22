@@ -42,6 +42,7 @@ angular.module('myApp', ['leancloud-realtime'])
 - `LCTextMessage`，文本类型消息，继承自 `LCTypedMessage`
 
 自定义类型消息同样需要是 `LCMessage` 的子类并分别实现以下几个方法来完成消息的编码与解码：
+(兼容现在的SDK,支持发送图片,接收图片等富媒体消息类型)
 
 ### 编码
 - `toString(data) : String`
