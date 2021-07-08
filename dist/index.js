@@ -48,7 +48,7 @@
 
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-	var _get = function get(_x13, _x14, _x15) { var _again = true; _function: while (_again) { var object = _x13, property = _x14, receiver = _x15; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x13 = parent; _x14 = property; _x15 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	var _get = function get(_x13, _x14, _x15) { var _again = true; _function: while (_again) { var object = _x13, property = _x14, receiver = _x15; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x13 = parent; _x14 = property; _x15 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
@@ -489,8 +489,9 @@
 	  }], [{
 	    key: 'validate',
 	    value: function validate(content, metaData) {
+	      console.log('content: ', content.data);
 	      if (_get(Object.getPrototypeOf(TypedMessage), 'validate', this).call(this, content, metaData)) {
-	        return typeof content._lctype === 'number';
+	        return typeof content._lctype === 'number' || typeof content.data.type === 'text';
 	      }
 	    }
 	  }, {
@@ -521,6 +522,8 @@
 	    this.content.type = -1;
 	  }
 
+	  // Image
+
 	  _createClass(TextMessage, [{
 	    key: 'toString',
 	    value: function toString(data) {
@@ -529,7 +532,9 @@
 	  }], [{
 	    key: 'validate',
 	    value: function validate(content, metaData) {
+	      console.log('validate from TextMessage, ', content.data);
 	      if (_get(Object.getPrototypeOf(TextMessage), 'validate', this).call(this, content, metaData)) {
+	        console.log('validate from TextMessage PASS');
 	        return content._lctype === -1;
 	      }
 	      // 兼容现在的 sdk
@@ -547,6 +552,53 @@
 	  }]);
 
 	  return TextMessage;
+	})(TypedMessage);
+
+	var ImageMessage = (function (_TypedMessage2) {
+	  _inherits(ImageMessage, _TypedMessage2);
+
+	  function ImageMessage(content, mataData) {
+	    _classCallCheck(this, ImageMessage);
+
+	    console.log('image constructor: ', content);
+	    if (typeof content === 'object') {
+	      content = {
+	        text: content.url
+	      };
+	    }
+	    _get(Object.getPrototypeOf(ImageMessage.prototype), 'constructor', this).call(this, content, mataData);
+	    this.content.type = -2;
+	  }
+
+	  _createClass(ImageMessage, [{
+	    key: 'toString',
+	    value: function toString(data) {
+	      return _get(Object.getPrototypeOf(ImageMessage.prototype), 'toString', this).call(this, data);
+	    }
+	  }], [{
+	    key: 'validate',
+	    value: function validate(content, metaData) {
+	      console.log('validate from ImageMessage, ', content.data);
+	      if (_get(Object.getPrototypeOf(ImageMessage), 'validate', this).call(this, content, metaData)) {
+	        console.log('validate from ImageMessage PASS');
+	        return content._lctype === -2;
+	      }
+	      // 兼容现在的 sdk
+	      return content.data.type === 'image';
+	    }
+	  }, {
+	    key: 'parse',
+	    value: function parse(content, metaData) {
+	      console.log('validate from ImageMessage, ', content);
+	      // 兼容现在的 sdk
+	      if (content.msg.type === 'image') {
+	        return new ImageMessage(content.msg, content);
+	      }
+	      return new ImageMessage(content, metaData);
+	    }
+	  }]);
+
+	  return ImageMessage;
 	})(TypedMessage);
 
 	var MessageParser = (function () {
@@ -569,12 +621,15 @@
 
 	          try {
 	            var messageCopy = angular.copy(message);
+	            console.log('m:', messageCopy);
 	            if (Klass.validate(messageCopy)) {
 	              var result = Klass.parse(messageCopy);
+	              console.log('PASS result:', result);
 	              if (result !== undefined) {
 	                return result;
 	              }
 	            }
+	            console.log('FAILED result:', messageCopy);
 	          } catch (e) {}
 	        }
 	      } catch (err) {
@@ -607,7 +662,7 @@
 	})();
 
 	MessageParser._messageClasses = [];
-	[Message, TypedMessage, TextMessage].forEach(function (Klass) {
+	[Message, TypedMessage, TextMessage, ImageMessage].forEach(function (Klass) {
 	  return MessageParser.register(Klass);
 	});
 

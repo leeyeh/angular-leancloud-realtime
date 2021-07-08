@@ -302,7 +302,7 @@ class TypedMessage extends Message {
   }
   static validate(content, metaData) {
     if (super.validate(content, metaData)) {
-      return typeof content._lctype === 'number';
+      return typeof content._lctype === 'number' || typeof content.data.type === 'text';
     }
   }
   static parse(content, metaData) {
@@ -341,6 +341,36 @@ class TextMessage extends TypedMessage {
   }
 }
 
+// Image
+class ImageMessage extends TypedMessage {
+  constructor(content, mataData) {
+    if (typeof content === 'object') {
+      content = {
+        text: content.url
+      };
+    }
+    super(content, mataData);
+    this.content.type = -2;
+  }
+  toString(data) {
+    return super.toString(data);
+  }
+  static validate(content, metaData) {
+    if (super.validate(content, metaData)) {
+      return content._lctype === -2;
+    }
+    // 兼容现在的 sdk
+    return content.data.type === 'image';
+  }
+  static parse(content, metaData) {
+    // 兼容现在的 sdk
+    if (content.msg.type === 'image') {
+      return new ImageMessage(content.msg, content);
+    }
+    return new ImageMessage(content, metaData);
+  }
+}
+
 class MessageParser {
   static parse(message) {
     // 这里 sdk 已经包了一层，这里的实现是为了替代这一层包装
@@ -366,7 +396,7 @@ class MessageParser {
   }
 }
 MessageParser._messageClasses = [];
-[Message, TypedMessage, TextMessage].forEach((Klass) => MessageParser.register(Klass));
+[Message, TypedMessage, TextMessage, ImageMessage].forEach((Klass) => MessageParser.register(Klass));
 
 angular.module('leancloud-realtime', [])
   .provider('LCRealtimeFactory', function() {
